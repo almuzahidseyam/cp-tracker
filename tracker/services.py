@@ -1,8 +1,13 @@
+from django.core.cache import cache
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone
 
 def fetch_codeforces_data(handle):
+    cache_key = f"cf_data_{handle}"
+    cached_data = cache.get(cache_key)
+    if cached_data: return cached_data
+
     url = f"https://codeforces.com/api/user.status?handle={handle}"
     try:
         response = requests.get(url, timeout=10)
@@ -19,8 +24,13 @@ def fetch_codeforces_data(handle):
                         prob_id = f"{prob.get('contestId')}{prob.get('index')}"
                         solved_problems.add(prob_id)
                         
-                return {
+                result = {
                     'total_solves': len(solved_problems),
+                    'current_streak': 0, 
+                    'max_streak': 0
+                }
+                cache.set(cache_key, result, 3600)  # Cache for 1 hour
+                return result
                     # Streaks can be calculated by grouping by creationTimeSeconds, but keeping it simple for now
                     'current_streak': 0, 
                     'max_streak': 0
@@ -60,6 +70,10 @@ def fetch_codechef_data(handle):
     return None
 
 def fetch_atcoder_data(handle):
+    cache_key = f"ac_data_{handle}"
+    cached_data = cache.get(cache_key)
+    if cached_data: return cached_data
+
     # Using Kenkoooo API
     url = f"https://kenkoooo.com/atcoder/atcoder-api/v3/user/submissions?user={handle}&from_second=0"
     try:
@@ -71,8 +85,13 @@ def fetch_atcoder_data(handle):
                 if sub.get('result') == 'AC':
                     solved_problems.add(sub.get('problem_id'))
                     
-            return {
+            result = {
                 'total_solves': len(solved_problems),
+                'current_streak': 0,
+                'max_streak': 0
+            }
+            cache.set(cache_key, result, 3600)
+            return result
                 'current_streak': 0,
                 'max_streak': 0
             }
