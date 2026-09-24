@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import UserHandle, Platform
+from .models import UserHandle, Platform, RecentSubmission
 from .services import update_user_handle_stats
 
 @login_required
@@ -14,6 +14,9 @@ def dashboard(request):
         'handles': handles,
         'total_solves': total_solves,
         'best_streak': best_streak
+
+    recent_submissions = RecentSubmission.objects.filter(handle__user=request.user).order_by('-timestamp')[:20]
+    context['recent_submissions'] = recent_submissions
     }
     return render(request, 'tracker/dashboard.html', context)
 

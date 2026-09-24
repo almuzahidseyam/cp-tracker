@@ -86,3 +86,16 @@ class Friendship(models.Model):
 
     def __str__(self):
         return f"{self.follower.email} follows {self.followed.email}"
+
+
+class RecentSubmission(models.Model):
+    handle = models.ForeignKey(UserHandle, on_delete=models.CASCADE, related_name='recent_submissions')
+    problem_name = models.CharField(max_length=255)
+    problem_url = models.URLField(max_length=500, blank=True, null=True)
+    timestamp = models.DateTimeField()
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"{self.handle.handle} solved {self.problem_name}"
