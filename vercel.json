@@ -1,8 +1,14 @@
-﻿{
-  "rewrites": [
+{
+  "builds": [
     {
-      "source": "/(.*)",
-      "destination": "/api/index"
+      "src": "cptracker_project/wsgi.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "cptracker_project/wsgi.py"
     }
   ]
 }
