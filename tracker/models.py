@@ -53,3 +53,23 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         self.otp_created_at = timezone.now()
         self.save()
         return self.otp_code
+
+class Platform(models.TextChoices):
+    CODEFORCES = 'CF', 'Codeforces'
+    CODECHEF = 'CC', 'CodeChef'
+    ATCODER = 'AC', 'AtCoder'
+
+class UserHandle(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='handles')
+    platform = models.CharField(max_length=2, choices=Platform.choices)
+    handle = models.CharField(max_length=100)
+    total_solves = models.IntegerField(default=0)
+    current_streak = models.IntegerField(default=0)
+    max_streak = models.IntegerField(default=0)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('user', 'platform')
+
+    def __str__(self):
+        return f"{self.user.email} - {self.platform}: {self.handle}"
