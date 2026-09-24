@@ -2,6 +2,7 @@ from django.core.cache import cache
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone
+import re
 
 def fetch_codeforces_data(handle):
     cache_key = f"cf_data_{handle}"
@@ -20,7 +21,6 @@ def fetch_codeforces_data(handle):
                 for sub in submissions:
                     if sub.get('verdict') == 'OK':
                         prob = sub.get('problem', {})
-                        # Unique problem identifier: contestId + index
                         prob_id = f"{prob.get('contestId')}{prob.get('index')}"
                         solved_problems.add(prob_id)
                         
@@ -29,42 +29,32 @@ def fetch_codeforces_data(handle):
                     'current_streak': 0, 
                     'max_streak': 0
                 }
-                cache.set(cache_key, result, 3600)  # Cache for 1 hour
+                cache.set(cache_key, result, 3600)
                 return result
-                    # Streaks can be calculated by grouping by creationTimeSeconds, but keeping it simple for now
-                    'current_streak': 0, 
-                    'max_streak': 0
-                }
     except Exception as e:
         print(f"Error fetching CF data: {e}")
     return None
 
 def fetch_codechef_data(handle):
+    cache_key = f"cc_data_{handle}"
+    cached_data = cache.get(cache_key)
+    if cached_data: return cached_data
+
     url = f"https://www.codechef.com/users/{handle}"
     try:
         headers = {'User-Agent': 'Mozilla/5.0'}
         response = requests.get(url, headers=headers, timeout=10)
         if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'lxml')
-            # In CodeChef, fully solved problems are usually indicated in the profile rating section
-            # For exact scraping, we search for the specific text
-            rating_section = soup.find('div', class_='rating-data-section')
-            total_solves = 0
-            if rating_section:
-                h3_tags = rating_section.find_all('h3')
-                for h3 in h3_tags:
-                    if 'Fully Solved' in h3.text:
-                        # Extract the number from 'Fully Solved (123)'
-                        num_str = h3.text.replace('Fully Solved', '').strip('() ')
-                        if num_str.isdigit():
-                            total_solves = int(num_str)
-                            break
+            match = re.search(r"Total Problems Solved:\s*(\d+)", response.text)
+            total_solves = int(match.group(1)) if match else 0
             
-            return {
+            result = {
                 'total_solves': total_solves,
                 'current_streak': 0,
                 'max_streak': 0
             }
+            cache.set(cache_key, result, 3600)
+            return result
     except Exception as e:
         print(f"Error fetching CodeChef data: {e}")
     return None
@@ -74,7 +64,6 @@ def fetch_atcoder_data(handle):
     cached_data = cache.get(cache_key)
     if cached_data: return cached_data
 
-    # Using Kenkoooo API
     url = f"https://kenkoooo.com/atcoder/atcoder-api/v3/user/submissions?user={handle}&from_second=0"
     try:
         response = requests.get(url, timeout=10)
@@ -92,11 +81,50 @@ def fetch_atcoder_data(handle):
             }
             cache.set(cache_key, result, 3600)
             return result
-                'current_streak': 0,
-                'max_streak': 0
-            }
     except Exception as e:
         print(f"Error fetching AtCoder data: {e}")
+    return None
+
+def fetch_leetcode_data(handle):
+    cache_key = f"lc_data_{handle}"
+    cached_data = cache.get(cache_key)
+    if cached_data: return cached_data
+
+    url = "https://leetcode.com/graphql"
+    query = """
+    query getUserProfile($username: String!) {
+      matchedUser(username: $username) {
+        submitStats {
+          acSubmissionNum {
+            difficulty
+            count
+          }
+        }
+      }
+    }
+    """
+    try:
+        response = requests.post(url, json={'query': query, 'variables': {'username': handle}}, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            user_data = data.get('data', {}).get('matchedUser')
+            if user_data:
+                stats = user_data.get('submitStats', {}).get('acSubmissionNum', [])
+                total_solves = 0
+                for stat in stats:
+                    if stat.get('difficulty') == 'All':
+                        total_solves = stat.get('count', 0)
+                        break
+                
+                result = {
+                    'total_solves': total_solves,
+                    'current_streak': 0,
+                    'max_streak': 0
+                }
+                cache.set(cache_key, result, 3600)
+                return result
+    except Exception as e:
+        print(f"Error fetching LeetCode data: {e}")
     return None
 
 def update_user_handle_stats(user_handle):
@@ -107,6 +135,8 @@ def update_user_handle_stats(user_handle):
         stats = fetch_codechef_data(user_handle.handle)
     elif user_handle.platform == 'AC':
         stats = fetch_atcoder_data(user_handle.handle)
+    elif user_handle.platform == 'LC':
+        stats = fetch_leetcode_data(user_handle.handle)
         
     if stats:
         user_handle.total_solves = stats.get('total_solves', 0)

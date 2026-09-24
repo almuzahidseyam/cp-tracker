@@ -58,6 +58,7 @@ class Platform(models.TextChoices):
     CODEFORCES = 'CF', 'Codeforces'
     CODECHEF = 'CC', 'CodeChef'
     ATCODER = 'AC', 'AtCoder'
+    LEETCODE = 'LC', 'LeetCode'
 
 class UserHandle(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='handles')
