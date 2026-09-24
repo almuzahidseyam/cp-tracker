@@ -1,9 +1,10 @@
 ﻿{
-  "builds": [{
-    "src": "cptracker_project/wsgi.py",
-    "use": "@vercel/python",
-    "config": { "maxLambdaSize": "15mb", "runtime": "python3.12" }
-  }],
+  "builds": [
+    {
+      "src": "cptracker_project/wsgi.py",
+      "use": "@vercel/python"
+    }
+  ],
   "routes": [
     {
       "src": "/(.*)",
