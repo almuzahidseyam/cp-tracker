@@ -1,3 +1,5 @@
+﻿import dj_database_url
+import os
 """
 Django settings for cptracker_project project.
 
@@ -150,3 +152,4 @@ CACHES = {
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
+
