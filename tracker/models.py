@@ -74,3 +74,15 @@ class UserHandle(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.platform}: {self.handle}"
+
+
+class Friendship(models.Model):
+    follower = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='following_set')
+    followed = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='follower_set')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('follower', 'followed')
+
+    def __str__(self):
+        return f"{self.follower.email} follows {self.followed.email}"

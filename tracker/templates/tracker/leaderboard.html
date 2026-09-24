@@ -1,0 +1,75 @@
+{% extends 'tracker/base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Leaderboard</h1>
+            <p class="mt-2 text-sm text-gray-600">Compare your progress with your friends.</p>
+        </div>
+        <div class="mt-4 sm:mt-0">
+            <form method="GET" action="{% url 'leaderboard' %}" class="flex gap-x-2">
+                <label for="search" class="sr-only">Search Users</label>
+                <input id="search" name="q" type="email" value="{{ search_query }}" placeholder="Search by email..." class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                <button type="submit" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Search</button>
+                {% if search_query %}
+                    <a href="{% url 'leaderboard' %}" class="inline-flex items-center rounded-md bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-600 shadow-sm hover:bg-gray-200">Clear</a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Search Results -->
+    {% if search_results is not None %}
+    <div class="bg-white shadow-sm ring-1 ring-gray-200 rounded-xl overflow-hidden mb-8">
+        <div class="px-4 py-4 sm:px-6 bg-gray-50 border-b border-gray-200">
+            <h3 class="text-sm font-semibold text-gray-900">Search Results</h3>
+        </div>
+        <ul role="list" class="divide-y divide-gray-200">
+            {% for result in search_results %}
+            <li class="p-4 sm:px-6 flex items-center justify-between hover:bg-gray-50">
+                <div class="text-sm font-medium text-gray-900">{{ result.user.email }}</div>
+                <form method="POST" action="{% url 'toggle_friend' result.user.id %}">
+                    {% csrf_token %}
+                    {% if result.is_following %}
+                    <button type="submit" class="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-semibold text-red-600 shadow-sm hover:bg-red-100 ring-1 ring-inset ring-red-500/10">Remove Friend</button>
+                    {% else %}
+                    <button type="submit" class="inline-flex items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-600 shadow-sm hover:bg-indigo-100 ring-1 ring-inset ring-indigo-500/10">Add Friend</button>
+                    {% endif %}
+                </form>
+            </li>
+            {% empty %}
+            <li class="p-4 sm:px-6 text-sm text-gray-500">No users found matching "{{ search_query }}"</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <!-- Leaderboard Table -->
+    <div class="bg-white shadow-sm ring-1 ring-gray-200 rounded-xl overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-300">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6 w-16">Rank</th>
+                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">User</th>
+                    <th scope="col" class="px-3 py-3.5 text-right text-sm font-semibold text-gray-900">Total Solved</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 bg-white">
+                {% for entry in leaderboard_data %}
+                <tr class="{% if entry.user == request.user %}bg-indigo-50/50{% else %}hover:bg-gray-50{% endif %}">
+                    <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-bold text-gray-500 sm:pl-6">#{{ forloop.counter }}</td>
+                    <td class="whitespace-nowrap px-3 py-4 text-sm font-medium {% if entry.user == request.user %}text-indigo-600{% else %}text-gray-900{% endif %}">
+                        {{ entry.user.email }}
+                        {% if entry.user == request.user %}
+                        <span class="ml-2 inline-flex items-center rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">You</span>
+                        {% endif %}
+                    </td>
+                    <td class="whitespace-nowrap px-3 py-4 text-sm font-bold text-gray-900 text-right">{{ entry.total_solves }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

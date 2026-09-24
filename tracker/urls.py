@@ -9,4 +9,7 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('verify/', views.verify_otp_view, name='verify_otp'),
     path('logout/', views.logout_view, name='logout'),
+
+    path('leaderboard/', views.leaderboard_view, name='leaderboard'),
+    path('friend/toggle/<int:user_id>/', views.toggle_friend, name='toggle_friend'),
 ]

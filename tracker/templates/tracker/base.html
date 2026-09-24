@@ -20,6 +20,8 @@
                 <div class="flex items-center space-x-4">
                     {% if request.user.is_authenticated %}
                         <span class="text-sm text-gray-500">{{ request.user.email }}</span>
+                        <a href="{% url 'dashboard' %}" class="text-sm font-medium text-gray-700 hover:text-indigo-600">Dashboard</a>
+                        <a href="{% url 'leaderboard' %}" class="text-sm font-medium text-gray-700 hover:text-indigo-600">Leaderboard</a>
                         <a href="{% url 'settings' %}" class="text-sm font-medium text-gray-700 hover:text-indigo-600">Settings</a>
                         <form action="{% url 'logout' %}" method="post" class="inline">
                             {% csrf_token %}

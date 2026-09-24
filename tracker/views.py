@@ -100,3 +100,64 @@ def logout_view(request):
     if request.method == 'POST':
         logout(request)
     return redirect('login')
+
+
+from django.db.models import Sum
+from .models import Friendship
+
+@login_required
+def leaderboard_view(request):
+    search_query = request.GET.get('q', '')
+    users = CustomUser.objects.all()
+    
+    if search_query:
+        users = users.filter(email__icontains=search_query).exclude(id=request.user.id)
+        search_results = []
+        following_ids = set(request.user.following_set.values_list('followed_id', flat=True))
+        for u in users:
+            search_results.append({
+                'user': u,
+                'is_following': u.id in following_ids
+            })
+    else:
+        search_results = None
+
+    # Get leaderboard data: self + followed users
+    following_users = CustomUser.objects.filter(follower_set__follower=request.user)
+    leaderboard_users = list(following_users)
+    if request.user not in leaderboard_users:
+        leaderboard_users.append(request.user)
+
+    leaderboard_data = []
+    for u in leaderboard_users:
+        # Calculate total solves across all platforms for user
+        total = UserHandle.objects.filter(user=u).aggregate(total=Sum('total_solves'))['total'] or 0
+        leaderboard_data.append({
+            'user': u,
+            'total_solves': total
+        })
+    
+    # Sort by total_solves descending
+    leaderboard_data.sort(key=lambda x: x['total_solves'], reverse=True)
+
+    return render(request, 'tracker/leaderboard.html', {
+        'leaderboard_data': leaderboard_data,
+        'search_results': search_results,
+        'search_query': search_query
+    })
+
+@login_required
+def toggle_friend(request, user_id):
+    if request.method == 'POST':
+        try:
+            target_user = CustomUser.objects.get(id=user_id)
+            if target_user != request.user:
+                friendship, created = Friendship.objects.get_or_create(follower=request.user, followed=target_user)
+                if not created:
+                    friendship.delete()
+                    messages.success(request, f"Removed {target_user.email} from your leaderboard.")
+                else:
+                    messages.success(request, f"Added {target_user.email} to your leaderboard!")
+        except CustomUser.DoesNotExist:
+            messages.error(request, "User not found.")
+    return redirect('leaderboard')
