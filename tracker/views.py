@@ -14,10 +14,11 @@ def dashboard(request):
         'handles': handles,
         'total_solves': total_solves,
         'best_streak': best_streak
-
+    }
+    
     recent_submissions = RecentSubmission.objects.filter(handle__user=request.user).order_by('-timestamp')[:20]
     context['recent_submissions'] = recent_submissions
-    }
+    
     return render(request, 'tracker/dashboard.html', context)
 
 @login_required
