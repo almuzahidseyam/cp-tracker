@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+﻿from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import UserHandle, Platform, RecentSubmission
@@ -164,3 +164,4 @@ def toggle_friend(request, user_id):
         except CustomUser.DoesNotExist:
             messages.error(request, "User not found.")
     return redirect('leaderboard')
+
