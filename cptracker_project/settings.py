@@ -123,31 +123,18 @@ STATIC_URL = 'static/'
 
 
 # Email
-# https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
-
+import os
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 
 if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
-    MAILERS = {
-        'default': {
-            'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
-            'HOST': 'smtp.gmail.com',
-            'PORT': 587,
-            'USE_TLS': True,
-            'USER': EMAIL_HOST_USER,
-            'PASSWORD': EMAIL_HOST_PASSWORD,
-        }
-    }
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.gmail.com'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
     DEFAULT_FROM_EMAIL = f"CP Tracker <{EMAIL_HOST_USER}>"
 else:
-    MAILERS = {
-        'default': {
-            'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-        }
-    },
-}
-
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # Custom User Model
 AUTH_USER_MODEL = 'tracker.CustomUser'
