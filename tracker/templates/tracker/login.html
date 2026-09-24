@@ -1,26 +1,54 @@
 {% extends 'tracker/base.html' %}
 
 {% block content %}
-<div class="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
-  <div class="sm:mx-auto sm:w-full sm:max-w-sm">
-    <h2 class="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">Sign in to your account</h2>
-    <p class="mt-2 text-center text-sm text-gray-600">We'll send a secure one-time password to your email.</p>
-  </div>
-
-  <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm bg-white p-8 shadow-sm ring-1 ring-gray-200 rounded-xl">
-    <form class="space-y-6" action="{% url 'login' %}" method="POST">
-        {% csrf_token %}
-      <div>
-        <label for="email" class="block text-sm font-medium leading-6 text-gray-900">Email address</label>
-        <div class="mt-2">
-          <input id="email" name="email" type="email" autocomplete="email" required class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+<div class="flex min-h-[70vh] flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div class="sm:mx-auto sm:w-full sm:max-w-md text-center">
+        <div class="mx-auto bg-indigo-100 text-indigo-600 rounded-2xl w-16 h-16 flex items-center justify-center mb-6 shadow-sm ring-1 ring-indigo-50">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
         </div>
-      </div>
+        <h2 class="text-3xl font-bold tracking-tight text-slate-900">Sign in to CP Tracker</h2>
+        <p class="mt-2 text-sm text-slate-500">We'll send a secure one-time passcode to your email.</p>
+    </div>
 
-      <div>
-        <button type="submit" class="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Send Login Code</button>
-      </div>
-    </form>
-  </div>
+    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-[400px]">
+        <div class="bg-white py-8 px-4 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] ring-1 ring-slate-200/60 sm:rounded-2xl sm:px-10">
+            <form class="space-y-6" action="{% url 'login' %}" method="POST">
+                {% csrf_token %}
+                
+                {% if error %}
+                <div class="rounded-lg bg-red-50 p-4 border border-red-100">
+                    <div class="flex">
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">{{ error }}</h3>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if request.session.login_email %}
+                <div>
+                    <label for="otp" class="block text-sm font-medium leading-6 text-slate-900">One-Time Passcode (OTP)</label>
+                    <div class="mt-2">
+                        <input id="otp" name="otp" type="text" required class="block w-full rounded-xl border-0 py-2.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 text-center tracking-widest font-mono text-lg transition-all" placeholder="• • • • • •">
+                    </div>
+                    <p class="mt-2 text-xs text-slate-500 text-center">Code sent to {{ request.session.login_email }}</p>
+                </div>
+                <div>
+                    <button type="submit" class="flex w-full justify-center rounded-xl bg-slate-900 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 transition-all duration-200">Verify & Login</button>
+                </div>
+                {% else %}
+                <div>
+                    <label for="email" class="block text-sm font-medium leading-6 text-slate-900">Email address</label>
+                    <div class="mt-2">
+                        <input id="email" name="email" type="email" autocomplete="email" required class="block w-full rounded-xl border-0 py-2.5 text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 transition-all" placeholder="you@example.com">
+                    </div>
+                </div>
+                <div>
+                    <button type="submit" class="flex w-full justify-center rounded-xl bg-indigo-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 transition-all duration-200">Send Login Code</button>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
 </div>
 {% endblock %}
