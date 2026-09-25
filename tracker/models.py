@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.utils import timezone
-import random
+import secrets
 import string
 
 class CustomUserManager(BaseUserManager):
@@ -49,7 +49,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return self.email
 
     def generate_otp(self):
-        self.otp_code = ''.join(random.choices(string.digits, k=6))
+        self.otp_code = ''.join(secrets.choice(string.digits) for _ in range(6))
         self.otp_created_at = timezone.now()
         self.save()
         return self.otp_code

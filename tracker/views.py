@@ -1,8 +1,11 @@
-﻿from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import UserHandle, Platform, RecentSubmission
+from django.utils import timezone
+from .models import UserHandle, Platform, RecentSubmission, CustomUser, Friendship
 from .services import update_user_handle_stats
+from django.db.models import Sum, Q
+import concurrent.futures
 
 @login_required
 def dashboard(request):
@@ -45,17 +48,19 @@ def settings_view(request):
 @login_required
 def refresh_stats(request):
     if request.method == 'POST':
-        handles = UserHandle.objects.filter(user=request.user)
+        handles = list(UserHandle.objects.filter(user=request.user))
         success_count = 0
-        for handle in handles:
-            if update_user_handle_stats(handle):
-                success_count += 1
+        
+        # Run API fetches in parallel to avoid Vercel 10s Serverless timeout
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            results = executor.map(update_user_handle_stats, handles)
+            success_count = sum(1 for res in results if res)
+            
         messages.success(request, f"Refreshed stats for {success_count} handle(s).")
     return redirect('dashboard')
 
 from django.contrib.auth import login, logout
 from django.core.mail import send_mail
-from .models import CustomUser
 
 def login_view(request):
     if request.method == 'POST':
@@ -66,18 +71,18 @@ def login_view(request):
             # Send Email
             send_mail(
                 'Your CP Tracker Login Code',
-                f'Your verification code is: {otp}',
+                f'Your verification code is: {otp}\nThis code will expire in 5 minutes.',
                 'noreply@cptracker.com',
                 [email],
                 fail_silently=False,
             )
-            request.session['auth_email'] = email
+            request.session['login_email'] = email
             messages.info(request, f"OTP sent to {email}")
             return redirect('verify_otp')
     return render(request, 'tracker/login.html')
 
 def verify_otp_view(request):
-    email = request.session.get('auth_email')
+    email = request.session.get('login_email')
     if not email:
         return redirect('login')
         
@@ -85,12 +90,19 @@ def verify_otp_view(request):
         otp = request.POST.get('otp')
         try:
             user = CustomUser.objects.get(email=email)
+            
+            # Check OTP Expiry (5 minutes = 300 seconds)
+            time_diff = (timezone.now() - user.otp_created_at).total_seconds()
+            if time_diff > 300:
+                messages.error(request, "OTP has expired. Please request a new one.")
+                return redirect('login')
+                
             if user.otp_code == otp:
                 user.is_active = True
                 user.save()
                 login(request, user)
-                if 'auth_email' in request.session:
-                    del request.session['auth_email']
+                if 'login_email' in request.session:
+                    del request.session['login_email']
                 messages.success(request, "Successfully logged in!")
                 return redirect('dashboard')
             else:
@@ -104,10 +116,6 @@ def logout_view(request):
     if request.method == 'POST':
         logout(request)
     return redirect('login')
-
-
-from django.db.models import Sum
-from .models import Friendship
 
 @login_required
 def leaderboard_view(request):
@@ -126,19 +134,16 @@ def leaderboard_view(request):
     else:
         search_results = None
 
-    # Get leaderboard data: self + followed users
-    following_users = CustomUser.objects.filter(follower_set__follower=request.user)
-    leaderboard_users = list(following_users)
-    if request.user not in leaderboard_users:
-        leaderboard_users.append(request.user)
+    # Fix N+1 Query Problem: single optimized SQL query to get followed users + self and sum their handles
+    leaderboard_users = CustomUser.objects.filter(
+        Q(follower_set__follower=request.user) | Q(id=request.user.id)
+    ).annotate(total_solves_sum=Sum('handles__total_solves')).distinct()
 
     leaderboard_data = []
     for u in leaderboard_users:
-        # Calculate total solves across all platforms for user
-        total = UserHandle.objects.filter(user=u).aggregate(total=Sum('total_solves'))['total'] or 0
         leaderboard_data.append({
             'user': u,
-            'total_solves': total
+            'total_solves': u.total_solves_sum or 0
         })
     
     # Sort by total_solves descending
@@ -166,3 +171,35 @@ def toggle_friend(request, user_id):
             messages.error(request, "User not found.")
     return redirect('leaderboard')
 
+@login_required
+def delete_handle(request, handle_id):
+    if request.method == 'POST':
+        try:
+            handle = UserHandle.objects.get(id=handle_id, user=request.user)
+            platform = handle.get_platform_display()
+            handle.delete()
+            messages.success(request, f"Successfully removed {platform} handle.")
+        except UserHandle.DoesNotExist:
+            messages.error(request, "Handle not found.")
+    return redirect('dashboard')
+
+from django.http import JsonResponse
+import os
+
+def cron_refresh(request):
+    token = request.GET.get('token')
+    # Use environment variable for the secret, fallback to dummy for local
+    expected_token = os.environ.get('CRON_SECRET', 'my-super-secret-cron-token')
+    
+    if token != expected_token:
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
+        
+    handles = list(UserHandle.objects.all())
+    success_count = 0
+    
+    # Using ThreadPoolExecutor to prevent Vercel 10s timeout while fetching multiple handles
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        results = executor.map(update_user_handle_stats, handles)
+        success_count = sum(1 for res in results if res)
+        
+    return JsonResponse({'status': 'success', 'refreshed_count': success_count, 'total_handles': len(handles)})
