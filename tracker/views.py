@@ -11,12 +11,12 @@ import concurrent.futures
 def dashboard(request):
     handles = UserHandle.objects.filter(user=request.user)
     total_solves = sum(h.total_solves for h in handles)
-    best_streak = max([h.current_streak for h in handles], default=0)
+    
     
     context = {
         'handles': handles,
         'total_solves': total_solves,
-        'best_streak': best_streak
+        
     }
     
     recent_submissions = RecentSubmission.objects.filter(handle__user=request.user).order_by('-timestamp')[:20]
@@ -40,7 +40,9 @@ def settings_view(request):
             if success:
                 messages.success(request, f"Successfully linked {platform} handle: {handle}")
             else:
-                messages.warning(request, f"Linked handle {handle}, but failed to fetch stats immediately.")
+                if created:
+                    obj.delete()  # Revert invalid handle creation
+                messages.error(request, f"Could not verify {platform} handle '{handle}'. Please check the username.")
             return redirect('dashboard')
             
     return render(request, 'tracker/settings.html')
@@ -92,6 +94,10 @@ def verify_otp_view(request):
             user = CustomUser.objects.get(email=email)
             
             # Check OTP Expiry (5 minutes = 300 seconds)
+            if not user.otp_created_at:
+                messages.error(request, "Invalid OTP session. Please request a new code.")
+                return redirect('login')
+                
             time_diff = (timezone.now() - user.otp_created_at).total_seconds()
             if time_diff > 300:
                 messages.error(request, "OTP has expired. Please request a new one.")
