@@ -1,4 +1,4 @@
-{% extends 'tracker/base.html' %}
+﻿{% extends 'tracker/base.html' %}
 
 {% block content %}
 <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -18,7 +18,7 @@
                 <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                 Connect Platform
             </h3>
-            <form action="{% url 'add_handle' %}" method="post" class="space-y-4">
+            <form action="{% url 'settings' %}" method="post" class="space-y-4">
                 {% csrf_token %}
                 <div>
                     <label for="platform" class="block text-sm font-medium text-slate-700">Platform</label>
@@ -123,3 +123,4 @@
     </div>
 </div>
 {% endblock %}
+
