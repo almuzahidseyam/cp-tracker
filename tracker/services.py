@@ -40,8 +40,31 @@ def fetch_codeforces_data(handle):
                                 'timestamp': sub.get('creationTimeSeconds', 0)
                             })
                         
+                # Fetch Rating and Rank from user.info API
+                rating = 0
+                max_rating = 0
+                rank = "Unrated"
+                max_rank = "Unrated"
+                try:
+                    info_url = f"https://codeforces.com/api/user.info?handles={handle}"
+                    info_res = requests.get(info_url, timeout=5)
+                    if info_res.status_code == 200:
+                        info_data = info_res.json()
+                        if info_data.get('status') == 'OK' and len(info_data.get('result', [])) > 0:
+                            user_info = info_data['result'][0]
+                            rating = user_info.get('rating', 0)
+                            max_rating = user_info.get('maxRating', 0)
+                            rank = user_info.get('rank', 'Unrated').title()
+                            max_rank = user_info.get('maxRank', 'Unrated').title()
+                except Exception as ex:
+                    print(f"Error fetching CF user info: {ex}")
+
                 result = {
                     'total_solves': len(solved_problems),
+                    'rating': rating,
+                    'max_rating': max_rating,
+                    'rank': rank,
+                    'max_rank': max_rank,
                     'current_streak': 0, 
                     'max_streak': 0,
                     'recent_submissions': recent_subs

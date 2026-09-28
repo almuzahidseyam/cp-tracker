@@ -3,15 +3,23 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
 from .models import UserHandle, Platform, RecentSubmission, CustomUser, Friendship
-from .services import update_user_handle_stats
+from .services import update_user_handle_stats, fetch_codeforces_data
 from django.db.models import Sum, Q
 import concurrent.futures
 
 @login_required
 def dashboard(request):
-    handles = UserHandle.objects.filter(user=request.user)
-    total_solves = sum(h.total_solves for h in handles)
+    handles = list(UserHandle.objects.filter(user=request.user))
     
+    # Inject dynamic Codeforces stats without modifying the database model
+    for handle in handles:
+        if handle.platform == 'CF':
+            cf_data = fetch_codeforces_data(handle.handle)
+            if cf_data:
+                handle.cf_rating = cf_data.get('rating', 0)
+                handle.cf_rank = cf_data.get('rank', 'Unrated')
+                
+    total_solves = sum(h.total_solves for h in handles)
     
     context = {
         'handles': handles,
