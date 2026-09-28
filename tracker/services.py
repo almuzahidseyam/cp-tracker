@@ -156,6 +156,12 @@ def fetch_leetcode_data(handle):
           }
         }
       }
+      userContestRanking(username: $username) {
+        rating
+        badge {
+          name
+        }
+      }
       recentAcSubmissionList(username: $username, limit: 15) {
         title
         titleSlug
@@ -178,6 +184,15 @@ def fetch_leetcode_data(handle):
                         total_solves = stat.get('count', 0)
                         break
                         
+            rating = 0
+            rank = "Unrated"
+            contest_data = data.get('data', {}).get('userContestRanking')
+            if contest_data:
+                rating = int(contest_data.get('rating', 0))
+                badge = contest_data.get('badge')
+                if badge:
+                    rank = badge.get('name', 'Unrated')
+                        
             recent_ac = data.get('data', {}).get('recentAcSubmissionList', [])
             if recent_ac:
                 for sub in recent_ac:
@@ -190,6 +205,8 @@ def fetch_leetcode_data(handle):
                 
             result = {
                 'total_solves': total_solves,
+                'rating': rating,
+                'rank': rank,
                 'current_streak': 0,
                 'max_streak': 0,
                 'recent_submissions': recent_subs

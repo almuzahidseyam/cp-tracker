@@ -66,6 +66,14 @@
                                         {% else %}bg-slate-100 text-slate-700{% endif %}">
                                         {{ handle.cf_rank }} ({{ handle.cf_rating }})
                                     </p>
+                                {% elif handle.platform == 'LC' and handle.lc_rating > 0 %}
+                                    <p class="text-xs font-semibold px-2 py-0.5 rounded-full inline-block mt-1 
+                                        {% if handle.lc_rating >= 2200 %}bg-red-100 text-red-700
+                                        {% elif handle.lc_rating >= 1900 %}bg-orange-100 text-orange-700
+                                        {% elif handle.lc_rating >= 1600 %}bg-blue-100 text-blue-700
+                                        {% else %}bg-slate-100 text-slate-700{% endif %}">
+                                        {{ handle.lc_rank }} ({{ handle.lc_rating }})
+                                    </p>
                                 {% endif %}
                                 <p class="text-xs text-slate-500 mt-1">Updated {{ handle.last_updated|timesince }} ago</p>
                             </div>
