@@ -49,3 +49,18 @@ A modern, open-source competitive programming tracker built as a **StopStalk alt
 ## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🐳 Docker Deployment (Recommended)
+
+You can run the entire application (Django + PostgreSQL) with a single command using Docker. 
+
+1. Ensure **Docker** and **docker-compose** are installed on your machine.
+2. Clone the repository and navigate into it.
+3. Run the following command:
+   `ash
+   docker-compose up --build
+   `
+4. The server will automatically start at http://localhost:8000. Any database migrations will be applied automatically!
+
+---
+Muhammad Al-Muzahid | © 2026
