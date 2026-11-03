@@ -1,31 +1,39 @@
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    BaseUserManager,
+    PermissionsMixin,
+)
 from django.utils import timezone
 import secrets
-import string
+
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
-            raise ValueError('The Email field must be set')
+            raise ValueError("The Email field must be set")
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
         if password:
             user.set_password(password)
+        else:
+            user.set_unusable_password()
         user.save(using=self._db)
         return user
 
     def create_superuser(self, email, password=None, **extra_fields):
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('is_active', True)
-        
-        if extra_fields.get('is_staff') is not True:
-            raise ValueError('Superuser must have is_staff=True.')
-        if extra_fields.get('is_superuser') is not True:
-            raise ValueError('Superuser must have is_superuser=True.')
-            
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("is_active", True)
+        extra_fields.setdefault("activation_locked", True)
+
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError("Superuser must have is_staff=True.")
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError("Superuser must have is_superuser=True.")
+
         return self.create_user(email, password, **extra_fields)
+
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
@@ -34,68 +42,101 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     last_name = models.CharField(max_length=30, blank=True)
     is_active = models.BooleanField(default=False)  # False until OTP verification
     is_staff = models.BooleanField(default=False)
+    activation_locked = models.BooleanField(default=False)
+    otp_last_sent_at = models.DateTimeField(null=True, blank=True)
     date_joined = models.DateTimeField(default=timezone.now)
-
-    # OTP tracking fields
-    otp_code = models.CharField(max_length=6, blank=True, null=True)
-    otp_created_at = models.DateTimeField(blank=True, null=True)
 
     objects = CustomUserManager()
 
-    USERNAME_FIELD = 'email'
+    USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
     def __str__(self):
         return self.email
 
-    def generate_otp(self):
-        self.otp_code = ''.join(secrets.choice(string.digits) for _ in range(6))
-        self.otp_created_at = timezone.now()
-        self.save()
-        return self.otp_code
+
+def challenge_id():
+    return secrets.token_urlsafe(32)
+
+
+class LoginChallenge(models.Model):
+    id = models.CharField(
+        primary_key=True, max_length=64, default=challenge_id, editable=False
+    )
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    code_hash = models.CharField(max_length=64)
+    expires_at = models.DateTimeField(db_index=True)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    consumed_at = models.DateTimeField(null=True, blank=True)
+
+
+class RequestBudget(models.Model):
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+    key = models.CharField(max_length=100)
+    window = models.BigIntegerField()
+    used = models.PositiveBigIntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["key", "window"], name="unique_request_budget"
+            )
+        ]
+
 
 class Platform(models.TextChoices):
-    CODEFORCES = 'CF', 'Codeforces'
-    CODECHEF = 'CC', 'CodeChef'
-    ATCODER = 'AC', 'AtCoder'
-    LEETCODE = 'LC', 'LeetCode'
+    CODEFORCES = "CF", "Codeforces"
+    CODECHEF = "CC", "CodeChef"
+    ATCODER = "AC", "AtCoder"
+    LEETCODE = "LC", "LeetCode"
+
 
 class UserHandle(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='handles')
+    user = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE, related_name="handles"
+    )
     platform = models.CharField(max_length=2, choices=Platform.choices)
     handle = models.CharField(max_length=100)
     total_solves = models.IntegerField(default=0)
     current_streak = models.IntegerField(default=0)
     max_streak = models.IntegerField(default=0)
+    rating = models.IntegerField(null=True, blank=True)
+    rank = models.CharField(max_length=100, blank=True)
     last_updated = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('user', 'platform')
+        unique_together = ("user", "platform")
 
     def __str__(self):
         return f"{self.user.email} - {self.platform}: {self.handle}"
 
 
 class Friendship(models.Model):
-    follower = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='following_set')
-    followed = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='follower_set')
+    follower = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE, related_name="following_set"
+    )
+    followed = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE, related_name="follower_set"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('follower', 'followed')
+        unique_together = ("follower", "followed")
 
     def __str__(self):
         return f"{self.follower.email} follows {self.followed.email}"
 
 
 class RecentSubmission(models.Model):
-    handle = models.ForeignKey(UserHandle, on_delete=models.CASCADE, related_name='recent_submissions')
+    handle = models.ForeignKey(
+        UserHandle, on_delete=models.CASCADE, related_name="recent_submissions"
+    )
     problem_name = models.CharField(max_length=255)
     problem_url = models.URLField(max_length=500, blank=True, null=True)
     timestamp = models.DateTimeField()
 
     class Meta:
-        ordering = ['-timestamp']
+        ordering = ["-timestamp"]
 
     def __str__(self):
         return f"{self.handle.handle} solved {self.problem_name}"

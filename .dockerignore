@@ -10,3 +10,7 @@ db.sqlite3
 .git/
 .gitignore
 README.md
+.venv/
+node_modules/
+staticfiles/
+.env.*

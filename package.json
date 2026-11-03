@@ -1,0 +1,1 @@
+{"name":"cp-tracker-styles","private":true,"scripts":{"build:css":"tailwindcss -i static/source.css -o static/app.css --minify"},"devDependencies":{"tailwindcss":"3.4.19"}}

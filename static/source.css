@@ -1,0 +1,4 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@layer base {body{font-family:system-ui,sans-serif}a,button{touch-action:manipulation}:focus-visible{outline:3px solid #a17c3f;outline-offset:3px}}

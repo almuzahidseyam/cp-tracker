@@ -1,8 +1,11 @@
 from django.test import TestCase
 from unittest.mock import patch, MagicMock
 from .services import fetch_codeforces_data, fetch_leetcode_data
+from django.core.cache import cache
 
 class APIServiceTests(TestCase):
+    def setUp(self):
+        cache.clear()
     @patch('tracker.services.requests.get')
     def test_fetch_codeforces_data_success(self, mock_get):
         # Mock the CF user.status response
