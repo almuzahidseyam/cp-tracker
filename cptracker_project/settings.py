@@ -16,6 +16,13 @@ ALLOWED_HOSTS = [
 ]
 if "*" in ALLOWED_HOSTS:
     raise ValueError("Use explicit allowed hosts.")
+if os.environ.get("VERCEL") == "1":
+    # Vercel supplies the exact hostnames and terminates HTTPS at its proxy.
+    for variable in ("VERCEL_URL", "VERCEL_BRANCH_URL", "VERCEL_PROJECT_PRODUCTION_URL"):
+        host = os.environ.get(variable, "").strip()
+        if host and host not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(host)
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",

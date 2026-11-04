@@ -50,6 +50,8 @@ For local containers set an alphanumeric `POSTGRES_PASSWORD` in `.env`, then `do
 
 ## Verification
 
+Vercel uses Django framework detection to collect and serve static assets. `.python-version` selects Python 3.12, and `requirements.txt` contains all runtime pins without a constraints-file include. Keep those pins in sync with `constraints.txt`, which also pins the CI audit tools. Configure a unique `SECRET_KEY` (at least 50 characters) and `DATABASE_URL` for both Preview and Production. Configure SMTP in Production to enable email login. Vercel's exact deployment, branch and production hostnames are allowed automatically; HTTPS is detected through its proxy. Database migrations remain a separate release step.
+
 ```sh
 python manage.py test
 python manage.py makemigrations --check --dry-run

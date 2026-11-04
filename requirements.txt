@@ -1,4 +1,4 @@
--c constraints.txt
+# Keep runtime pins self-contained: Vercel cannot resolve the constraints include.
 Django==6.1.1
 requests==2.34.2
 python-dotenv==1.2.4
@@ -6,3 +6,10 @@ whitenoise==6.12.0
 gunicorn==26.2.0
 dj-database-url==3.1.2
 psycopg2-binary==2.9.13
+asgiref==3.13.0
+certifi==2026.10.23
+charset-normalizer==3.5.2
+idna==3.20
+sqlparse==0.6.1
+tzdata==2026.6
+urllib3==2.8.0
